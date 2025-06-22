@@ -1,0 +1,5 @@
+fastapi[standard]
+mcp
+fastapi-mcp
+miku_ai
+uvicorn

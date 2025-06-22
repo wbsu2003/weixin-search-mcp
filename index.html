@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCP 微信文章搜索服务测试</title>
+    <link rel="icon" href="/img/favicon.ico" type="image/x-icon">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        .chat-box {
+            flex: 1;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 10px;
+            overflow-y: auto;
+        }
+        .input-area {
+            display: flex;
+            margin-bottom: 20px;
+        }
+        #query-input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .top-num-select {
+            padding: 10px;
+            margin-left: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+            cursor: pointer;
+        }
+        #send-btn {
+            padding: 10px 20px;
+            margin-left: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #send-btn:hover {
+            background-color: #45a049;
+        }
+        .message {
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .user-message {
+            background-color: #e2f3fb;
+            align-self: flex-end;
+        }
+        .system-message {
+            background-color: #f1f1f1;
+            align-self: flex-start;
+        }
+        .error-message {
+            background-color: #ffe6e6;
+            color: #d32f2f;
+            border-left: 3px solid #d32f2f;
+        }
+        .article {
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+        }
+        .article-title {
+            font-weight: bold;
+        }
+        .article-meta {
+            color: #666;
+            font-size: 0.9em;
+            margin: 5px 0;
+        }
+        .article-link {
+            color: #1a73e8;
+            text-decoration: none;
+        }
+        .article-link:hover {
+            text-decoration: underline;
+        }
+        .loading {
+            display: inline-block;
+            margin-left: 10px;
+        }
+        .log-area {
+            margin-top: 20px;
+            height: 200px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 10px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+            background-color: #f8f8f8;
+        }
+        .server-status {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            background-color: #f1f1f1;
+        }
+        .server-info {
+            display: flex;
+            align-items: center;
+            width: 100%;
+        }
+        .server-address {
+            flex: 1;
+            font-weight: bold;
+        }
+        .server-address span {
+            font-weight: normal;
+            color: #1a73e8;
+        }
+        .status-info {
+            margin-left: 15px;
+            display: flex;
+            align-items: center;
+        }
+        .status-indicator {
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-weight: bold;
+            margin-left: 5px;
+        }
+        .status-online {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .status-offline {
+            background-color: #f44336;
+            color: white;
+        }
+        .status-checking {
+            background-color: #ff9800;
+            color: white;
+        }
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        #check-connection-btn {
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+        #check-connection-btn:hover {
+            background-color: #0b7dda;
+        }
+        .config-section {
+            margin-bottom: 10px;
+        }
+        .config-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        .config-item label {
+            width: 120px;
+            font-weight: bold;
+        }
+        .config-item input {
+            flex: 1;
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+        #save-config-btn {
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 5px 10px;
+            margin-top: 5px;
+            cursor: pointer;
+        }
+        #save-config-btn:hover {
+            background-color: #0b7dda;
+        }
+        .header-logo {
+            height: 36px;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1><img src="/img/logo.png" alt="Logo" class="header-logo"> MCP 微信文章搜索服务测试</h1>
+        
+        <div class="server-status">
+            <div class="server-info">
+                <span class="server-address">服务器地址: <span id="server-url-display"></span></span>
+                <span class="status-info">状态: <span id="server-status" class="status-indicator status-checking">检查中...</span></span>
+            </div>
+        </div>
+        
+        <div class="config-section" style="display: none;">
+            <div class="config-item">
+                <label for="server-url">服务器地址:</label>
+                <input type="text" id="server-url" placeholder="例如: http://example.com:8000" readonly>
+            </div>
+        </div>
+        
+        <div class="chat-box" id="chat-box"></div>
+        <div class="input-area">
+            <input type="text" id="query-input" placeholder="输入搜索关键词...">
+            <select id="top-num-select" class="top-num-select">
+                <option value="5" selected>5条</option>
+                <option value="10">10条</option>
+                <option value="15">15条</option>
+                <option value="20">20条</option>
+                <option value="30">30条</option>
+                <option value="50">50条</option>
+            </select>
+            <button id="send-btn">发送</button>
+            <div class="loading" id="loading" style="display: none;">处理中...</div>
+        </div>
+        <div class="log-area" id="log-area"></div>
+    </div>
+
+    <script>
+        const chatBox = document.getElementById('chat-box');
+        const queryInput = document.getElementById('query-input');
+        const sendBtn = document.getElementById('send-btn');
+        const loading = document.getElementById('loading');
+        const logArea = document.getElementById('log-area');
+        const serverStatusElem = document.getElementById('server-status');
+        const serverUrlInput = document.getElementById('server-url');
+        const serverUrlDisplay = document.getElementById('server-url-display');
+        
+        // 默认使用当前站点的主机
+        const DEFAULT_SERVER_URL = window.location.origin;
+        
+        // 从localStorage加载保存的服务器地址，如果没有则使用默认值
+        function loadServerConfig() {
+            serverUrlInput.value = DEFAULT_SERVER_URL;
+            serverUrlDisplay.textContent = DEFAULT_SERVER_URL;
+            addLog(`已加载服务器配置: ${serverUrlInput.value}`);
+        }
+        
+        // 获取服务器地址
+        function getServerUrl() {
+            return DEFAULT_SERVER_URL;
+        }
+        
+        // 获取MCP端点地址
+        function getMCPUrl() {
+            return `${getServerUrl()}/search_articles`;
+        }
+        
+        // 获取工具端点地址
+        function getToolUrl() {
+            return `${getServerUrl()}/search_articles`;
+        }
+        
+        // 消息历史
+        let messageHistory = [];
+        
+        // 添加日志
+        function addLog(message, isError = false) {
+            const logMessage = `${new Date().toLocaleTimeString()} - ${message}`;
+            const logSpan = document.createElement('span');
+            logSpan.textContent = logMessage;
+            if (isError) {
+                logSpan.style.color = '#d32f2f';
+                logSpan.style.fontWeight = 'bold';
+            }
+            logArea.appendChild(logSpan);
+            logArea.appendChild(document.createElement('br'));
+            logArea.scrollTop = logArea.scrollHeight;
+            
+            console.log(message);
+        }
+        
+        // 添加错误日志
+        function addErrorLog(message) {
+            addLog(message, true);
+            console.error(message);
+        }
+        
+        // 添加消息到聊天框
+        function addMessage(content, isUser = false, isError = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user-message' : (isError ? 'error-message' : 'system-message')}`;
+            messageDiv.textContent = content;
+            chatBox.appendChild(messageDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+            
+            // 更新消息历史
+            if (!isError) {
+                if (isUser) {
+                    messageHistory.push({ role: 'user', content });
+                } else {
+                    messageHistory.push({ role: 'assistant', content });
+                }
+            }
+        }
+        
+        // 检查服务器连接
+        async function checkServerConnection() {
+            serverStatusElem.className = 'status-indicator status-checking';
+            serverStatusElem.textContent = '检查中...';
+            
+            try {
+                const serverUrl = getServerUrl();
+                addLog(`检查服务器连接: ${serverUrl}`);
+                
+                // 先尝试health端点 - 这是最轻量级的检查
+                try {
+                    const healthResponse = await fetch(`${serverUrl}/health`, {
+                        method: 'GET',
+                        headers: {
+                            'Accept': 'application/json'
+                        },
+                        // 设置较短的超时时间
+                        signal: AbortSignal.timeout(2000)
+                    });
+                    
+                    if (healthResponse.ok) {
+                        const healthData = await healthResponse.json();
+                        serverStatusElem.className = 'status-indicator status-online';
+                        serverStatusElem.textContent = '在线';
+                        addLog(`服务器连接成功 (health): ${JSON.stringify(healthData)}`);
+                        return true;
+                    }
+                } catch (healthError) {
+                    addLog(`Health检查失败，尝试备用API检查: ${healthError.message}`);
+                    // 继续尝试备用端点
+                }
+                
+                // 如果health失败，尝试docs或根路径
+                const response = await fetch(`${serverUrl}/`, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'text/html'
+                    },
+                    mode: 'cors',  // 确保使用CORS模式
+                    credentials: 'omit',  // 不发送cookies
+                    cache: 'no-cache'  // 不使用缓存
+                });
+                
+                if (response.ok) {
+                    serverStatusElem.className = 'status-indicator status-online';
+                    serverStatusElem.textContent = '在线';
+                    addLog(`服务器连接成功: 根路径可访问`);
+                    return true;
+                } else {
+                    serverStatusElem.className = 'status-indicator status-offline';
+                    serverStatusElem.textContent = '错误';
+                    addErrorLog(`服务器响应错误: ${response.status} ${response.statusText}`);
+                    return false;
+                }
+            } catch (error) {
+                serverStatusElem.className = 'status-indicator status-offline';
+                serverStatusElem.textContent = '离线';
+                addErrorLog(`服务器连接失败: ${error.message}`);
+                
+                // 提供更详细的错误信息和建议
+                if (error.message.includes('Failed to fetch')) {
+                    addErrorLog('无法连接到服务器。请检查:');
+                    addErrorLog('1. 服务器是否已启动');
+                    addErrorLog('2. 服务器地址是否正确');
+                    addErrorLog('3. 是否有网络问题或防火墙阻止');
+                    addErrorLog('4. 是否有CORS限制');
+                }
+                
+                return false;
+            }
+        }
+        
+        // 发送消息到服务器
+        async function sendMessage(query) {
+            if (!query.trim()) return;
+            
+            // 先检查服务器连接
+            if (!await checkServerConnection()) {
+                addMessage('无法连接到服务器，请检查服务器状态', false, true);
+                return;
+            }
+            
+            // 获取用户选择的结果数量
+            const topNum = parseInt(document.getElementById('top-num-select').value);
+            
+            addMessage(`搜索"${query}"，返回${topNum}条结果`, true);
+            loading.style.display = 'inline-block';
+            
+            try {
+                addLog(`发送查询: ${query}, 返回条数: ${topNum}`);
+                
+                const mcpUrl = getMCPUrl();
+                addLog(`发送POST请求到: ${mcpUrl}`);
+                
+                const response = await fetch(mcpUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        query: query,
+                        top_num: topNum
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status} ${response.statusText}`);
+                }
+                
+                addLog('连接成功，接收响应...');
+                
+                const responseData = await response.json();
+                addLog(`收到响应: ${JSON.stringify(responseData).substring(0, 100)}...`);
+                
+                // 显示搜索结果
+                displaySearchResults(responseData);
+                
+            } catch (error) {
+                addErrorLog(`错误: ${error.message}`);
+                addErrorLog(`错误堆栈: ${error.stack}`);
+                addMessage(`出错了: ${error.message}`, false, true);
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+        
+        // 显示搜索结果
+        function displaySearchResults(data) {
+            if (!data || !data.articles || data.articles.length === 0) {
+                addMessage('未找到相关文章', false);
+                return;
+            }
+            
+            // 创建结果容器
+            const resultsDiv = document.createElement('div');
+            resultsDiv.className = 'search-results';
+            
+            // 添加找到的文章数量信息
+            const countInfo = document.createElement('p');
+            countInfo.textContent = `找到 ${data.total_count} 篇相关文章:`;
+            resultsDiv.appendChild(countInfo);
+            
+            // 添加每篇文章
+            data.articles.forEach(article => {
+                const articleDiv = document.createElement('div');
+                articleDiv.className = 'article';
+                
+                // 文章标题
+                const titleElem = document.createElement('div');
+                titleElem.className = 'article-title';
+                titleElem.textContent = article.title;
+                articleDiv.appendChild(titleElem);
+                
+                // 文章来源和日期
+                const metaElem = document.createElement('div');
+                metaElem.className = 'article-meta';
+                metaElem.textContent = `来源: ${article.source} | 日期: ${article.date}`;
+                articleDiv.appendChild(metaElem);
+                
+                // 文章链接
+                const linkElem = document.createElement('a');
+                linkElem.className = 'article-link';
+                linkElem.href = article.url;
+                linkElem.textContent = '阅读全文';
+                linkElem.target = '_blank';
+                articleDiv.appendChild(linkElem);
+                
+                resultsDiv.appendChild(articleDiv);
+            });
+            
+            // 添加到聊天框
+            chatBox.appendChild(resultsDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+        
+        // 初始化
+        async function init() {
+            // 加载服务器配置
+            loadServerConfig();
+            
+            // 绑定发送按钮事件
+            sendBtn.addEventListener('click', () => {
+                const query = queryInput.value;
+                if (query.trim()) {
+                    sendMessage(query);
+                    queryInput.value = '';
+                }
+            });
+            
+            // 绑定输入框回车事件
+            queryInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    const query = queryInput.value;
+                    if (query.trim()) {
+                        sendMessage(query);
+                        queryInput.value = '';
+                    }
+                }
+            });
+            
+            // 初始检查连接
+            await checkServerConnection();
+        }
+        
+        // 启动
+        init();
+    </script>
+</body>
+</html> 
