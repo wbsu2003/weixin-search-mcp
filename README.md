@@ -45,3 +45,11 @@ pip install -r requirements.txt
 ```bash
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ``` 
+
+更多说明
+- 博客： [微信公众号文章搜索MCP服务weixin_search_mcp](https://laosu.tech/2025/06/27/微信公众号文章搜索MCP服务weixin_search_mcp)
+- 公众号： [微信公众号文章搜索MCP服务weixin_search_mcp](https://mp.weixin.qq.com/s/mYn2xaoIVom9zptCMIxvLA?token=1229315886&lang=zh_CN)
+- CSDN： [微信公众号文章搜索MCP服务weixin_search_mcp](https://blog.csdn.net/wbsu2004/article/details/148946597)
+
+
+
